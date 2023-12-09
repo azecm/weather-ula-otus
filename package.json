@@ -9,7 +9,6 @@
     "test": "jest --coverage",
     "lint": "prettier --check . && eslint .",
     "lint:fix": "prettier --write . && eslint . --fix",
-    "prepare": "husky install",
     "posttest": "jest-coverage-thresholds-bumper"
   },
   "keywords": [],
