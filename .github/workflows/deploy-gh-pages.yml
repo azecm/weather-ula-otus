@@ -4,7 +4,15 @@ name: Deploy to GithubPages
 #   push:
 #     branches:
 #       - master
-on: pull_request
+
+#on: pull_request
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
 permissions:
   contents: write
 jobs:
@@ -21,11 +29,7 @@ jobs:
       - name: Build
         run: |
           npm run build
-      - name: Copy
-        run: |
-          mkdir page
-          cp dist/* page/
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: page # The folder the action should deploy.
+          folder: dist # The folder the action should deploy.
