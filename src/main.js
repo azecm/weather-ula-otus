@@ -1,5 +1,6 @@
 import "./style.css";
-import {idList, requestDomain} from "./constants";
+import {callIfTrue, idList, requestDomain} from "./constants";
+import {get} from "lodash/object";
 
 
 const citiesList = [];
@@ -11,7 +12,8 @@ const citiesList = [];
 //         mapStatic(ll);
 // });
 
-if(!window.jest) startAll();
+//if(!window.jest) startAll();
+callIfTrue(!window.jest, startAll)();
 
 async function initApp(){
     const ip = await getIP();
@@ -26,6 +28,7 @@ export async function getWeather(cityName) {
     const link = `https://${requestDomain.openWeather}/data/2.5/weather?q=${cityName}&appid=6dac2d983c4b4bff9266414437d14d5e`;
     const result = await fetch(link);
     const data = await result.json();
+    if(!data.weather) return false;
     console.log(data.weather[0].description, data.main.temp, data.weather[0].icon);
 
     const tempInF = `${data.main.temp}`;
@@ -36,6 +39,7 @@ export async function getWeather(cityName) {
     temperature.innerText = `${tempInC}°C`;
 
     const weatherDescription = document.getElementById("weatherDescription");
+
     weatherDescription.textContent = data.weather[0].description;
 
     const city = document.getElementById("city");
@@ -43,12 +47,13 @@ export async function getWeather(cityName) {
 
     const weatherImage = document.getElementById("weatherImage");
     weatherImage.src = `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+    return true;
 }
 
 export async function getIP() {
     const res = await fetch(`https://${requestDomain.ipApi}/json/`);
     const data = await res.json();
-    let ip = data.ip;
+    const ip = data.ip;
     console.log(ip);
     return ip;
 }
@@ -57,8 +62,8 @@ async function getCoordinates(ip) {
     const res = await fetch(`https://${requestDomain.sypExGeo}/json/${ip}`);
     const data = await res.json();
     console.log(data.city.lat, data.city.lon, data.city.name_ru);
-    let cityName = data.city.name_ru;
-    let ll = data.city.lon + "," + data.city.lat;
+    const cityName = data.city.name_ru;
+    const ll = data.city.lon + "," + data.city.lat;
     console.log(ll);
     return {cityName, ll};
 }
@@ -76,26 +81,30 @@ async function cityCoordinatesByName(cityName) {
     return data.coord.lon + "," + data.coord.lat;
 }
 
+function inputKeyDown(e){
+    callIfTrue(e.key === "Enter", addCityInList)();
+}
+
 export async function addCityInList(){
     const list = document.getElementById(idList);
     const input = document.getElementById("input");
     const cityName = input.value;
     input.value = "";
-    await getWeather(cityName);
-    cityCoordinatesByName(cityName).then((ll)=>mapStatic(ll));
-    const li = document.createElement("li");
-    li.setAttribute("data-city", cityName);
-    li.innerHTML = cityName;
-    list.append(li);
-    citiesList.push(cityName);
-    console.log(citiesList);
-    localStorage.setItem("cities", JSON.stringify(citiesList));
-    if(list.childElementCount > 10) {
-        list.childNodes[0].remove();
-        citiesList.shift();
+    if(await getWeather(cityName)){
+        cityCoordinatesByName(cityName).then((ll)=>mapStatic(ll));
+        const li = document.createElement("li");
+        li.setAttribute("data-city", cityName);
+        li.innerHTML = cityName;
+        list.append(li);
+        citiesList.push(cityName);
+        console.log(citiesList);
         localStorage.setItem("cities", JSON.stringify(citiesList));
+        if(list.childElementCount > 10) {
+            list.childNodes[0].remove();
+            citiesList.shift();
+            localStorage.setItem("cities", JSON.stringify(citiesList));
+        }
     }
-
 }
 
 async function cityFromListClick(e){
@@ -115,6 +124,7 @@ export async function startAll() {
     }
     const button = document.getElementById("button");
     button.addEventListener("click", addCityInList);
+    document.getElementById("input").addEventListener("keydown", inputKeyDown);
     document.getElementById(idList).addEventListener("click", cityFromListClick);
 }
 

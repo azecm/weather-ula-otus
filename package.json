@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "webpack --config ./webpack.config.build.js",
-    "start": "webpack serve --config ./webpack.config.dev.js",
+    "build": "webpack --config webpack.config.build.cjs",
+    "start": "webpack serve --config webpack.config.dev.cjs",
     "test": "jest --coverage",
     "lint": "prettier --check . && eslint .",
     "lint:fix": "prettier --write . && eslint . --fix",

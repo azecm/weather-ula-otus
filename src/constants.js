@@ -5,3 +5,8 @@ export const requestDomain = {
     sypExGeo: "api.sypexgeo.net",
     ipApi: "ipapi.co"
 }
+
+export function callIfTrue(flag, call){
+    const _flag = Boolean(flag);
+    return _flag ?  call : ()=>{};
+}
