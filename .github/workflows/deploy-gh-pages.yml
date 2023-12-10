@@ -16,7 +16,7 @@ on:
 permissions:
   contents: write
 jobs:
-  deploy-to-gh-pages:
+  build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
