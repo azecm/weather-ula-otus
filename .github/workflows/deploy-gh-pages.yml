@@ -4,20 +4,11 @@ name: Deploy to GithubPages
 #   push:
 #     branches:
 #       - master
-
-#on: pull_request
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
+on: pull_request
 permissions:
   contents: write
-
 jobs:
-  build:
+  deploy-to-gh-pages:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
