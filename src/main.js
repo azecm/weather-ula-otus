@@ -1,146 +1,105 @@
 import "./style.css";
-import {callIfTrue, idList, requestDomain} from "./constants";
-import {get} from "lodash/object";
+import {callIfTrue, citiesList, idList} from "./constants";
+import {loadList, saveList} from "./storage";
+import {getCity, getCityCoordinatesByName, getWeather} from "./api";
 
-
-const citiesList = [];
-
-// getIP().
-//     then((ip)=>getCoordinates(ip)).
-//     then(({cityName, ll})=> {
-//         getWeather(cityName);
-//         mapStatic(ll);
-// });
-
-//if(!window.jest) startAll();
 callIfTrue(!window.jest, startAll)();
 
-async function initApp(){
-    const ip = await getIP();
-    const {cityName, ll} = await getCoordinates(ip);
-    getWeather(cityName);
-    mapStatic(ll);
+async function initApp() {
+  const city = await getCity();
+  if(city){
+    mapStatic(city.ll);
+    getWeather(city.cityName).then(showWeather);
+  }
 }
 
-//initApp();
-
-export async function getWeather(cityName) {
-    const link = `https://${requestDomain.openWeather}/data/2.5/weather?q=${cityName}&appid=6dac2d983c4b4bff9266414437d14d5e`;
-    const result = await fetch(link);
-    const data = await result.json();
-    if(!data.weather) return false;
-    console.log(data.weather[0].description, data.main.temp, data.weather[0].icon);
-
-    const tempInF = `${data.main.temp}`;
-    const numtempInF = Number(tempInF);
-    const tempInC = Math.round(numtempInF - 273.15);
-
-    const temperature = document.getElementById("temperature");
-    temperature.innerText = `${tempInC}°C`;
-
-    const weatherDescription = document.getElementById("weatherDescription");
-
-    weatherDescription.textContent = data.weather[0].description;
-
-    const city = document.getElementById("city");
-    city.innerText = `${data.name}`;
-
-    const weatherImage = document.getElementById("weatherImage");
-    weatherImage.src = `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
-    return true;
-}
-
-export async function getIP() {
-    const res = await fetch(`https://${requestDomain.ipApi}/json/`);
-    const data = await res.json();
-    const ip = data.ip;
-    console.log(ip);
-    return ip;
-}
-
-async function getCoordinates(ip) {
-    const res = await fetch(`https://${requestDomain.sypExGeo}/json/${ip}`);
-    const data = await res.json();
-    console.log(data.city.lat, data.city.lon, data.city.name_ru);
-    const cityName = data.city.name_ru;
-    const ll = data.city.lon + "," + data.city.lat;
-    console.log(ll);
-    return {cityName, ll};
-}
+// async function getCoordinates(cityName) {
+//   const res = await fetch(`https://${requestDomain.sypExGeo}/json/${ip}`);
+//   const data = await res.json();
+//   console.log(data.city.lat, data.city.lon, data.city.name_ru);
+//   const cityName = data.city.name_ru;
+//   const ll = data.city.lon + "," + data.city.lat;
+//   console.log(ll);
+//   return { cityName, ll };
+// }
 
 function mapStatic(ll) {
-    const map = document.getElementById("map");
-    map.src = `https://static-maps.yandex.ru/v1?ll=${ll}&spn=0.016457,0.00619&apikey=220bcecd-2e57-4af8-9150-e82755be7199`;
+  if(!ll) return;
+  const map = document.getElementById("map");
+  map.src = `https://static-maps.yandex.ru/v1?ll=${ll}&spn=0.016457,0.00619&apikey=220bcecd-2e57-4af8-9150-e82755be7199`;
 }
 
-async function cityCoordinatesByName(cityName) {
-    const link = `https://${requestDomain.openWeather}/data/2.5/weather?q=${cityName}&appid=6dac2d983c4b4bff9266414437d14d5e`;
-    const result = await fetch(link);
-    const data = await result.json();
-    console.log(data.coord.lon, data.coord.lat, data.name);
-    return data.coord.lon + "," + data.coord.lat;
+function showWeather(data){
+  if(!data) return;
+  const tempInF = `${data.temp}`;
+  const numtempInF = Number(tempInF);
+  const tempInC = Math.round(numtempInF - 273.15);
+
+  const temperature = document.getElementById("temperature");
+  temperature.innerText = `${tempInC}°C`;
+
+  const weatherDescription = document.getElementById("weatherDescription");
+
+  weatherDescription.textContent = data.description;
+
+  const city = document.getElementById("city");
+  city.innerText = `${data.name}`;
+
+  const weatherImage = document.getElementById("weatherImage");
+  weatherImage.src = `https://openweathermap.org/img/wn/${data.icon}@2x.png`;
 }
 
-function inputKeyDown(e){
-    callIfTrue(e.key === "Enter", addCityInList)();
+function inputKeyDown(e) {
+  callIfTrue(e.key === "Enter", addCityInList)();
 }
 
-export async function addCityInList(){
-    const list = document.getElementById(idList);
-    const input = document.getElementById("input");
-    const cityName = input.value;
-    input.value = "";
-    if(await getWeather(cityName)){
-        cityCoordinatesByName(cityName).then((ll)=>mapStatic(ll));
-        const li = document.createElement("li");
-        li.setAttribute("data-city", cityName);
-        li.innerHTML = cityName;
-        list.append(li);
-        citiesList.push(cityName);
-        console.log(citiesList);
-        localStorage.setItem("cities", JSON.stringify(citiesList));
-        if(list.childElementCount > 10) {
-            list.childNodes[0].remove();
-            citiesList.shift();
-            localStorage.setItem("cities", JSON.stringify(citiesList));
-        }
+async function addCityInList() {
+  const list = document.getElementById(idList);
+  const input = document.getElementById("input");
+  const cityName = input.value;
+  input.value = "";
+  const weather = await getWeather(cityName);
+  if (weather) {
+    showWeather(weather);
+    getCityCoordinatesByName(cityName).then(mapStatic);
+    const li = document.createElement("li");
+    li.setAttribute("data-city", cityName);
+    li.innerHTML = cityName;
+    list.append(li);
+    citiesList.push(cityName);
+    console.log(citiesList);
+    if (list.childElementCount > 10) {
+      list.childNodes[0].remove();
+      citiesList.shift();
     }
+    saveList();
+  }
 }
 
-async function cityFromListClick(e){
-    if(e.target.dataset && e.target.dataset.city){
-        const city = e.target.dataset.city;
-        await getWeather(city);
-        cityCoordinatesByName(city).then((ll)=>mapStatic(ll));
-    }
+async function cityFromListClick(e) {
+  if (e.target.dataset && e.target.dataset.city) {
+    const city = e.target.dataset.city;
+    getWeather(city).then(showWeather)
+    getCityCoordinatesByName(city).then(mapStatic);
+  }
+}
+
+function initCityList() {
+  const list = document.getElementById(idList);
+  for (const cityName of citiesList) {
+    const li = document.createElement("li");
+    li.setAttribute("data-city", cityName);
+    li.innerHTML = cityName;
+    list.append(li);
+  }
 }
 
 export async function startAll() {
-    if (localStorage.getItem("cities") === null) {
-        initApp();
-    } else {
-        initApp();
-        citiesFromStorage();
-    }
-    const button = document.getElementById("button");
-    button.addEventListener("click", addCityInList);
-    document.getElementById("input").addEventListener("keydown", inputKeyDown);
-    document.getElementById(idList).addEventListener("click", cityFromListClick);
+  loadList();
+  await initApp();
+  initCityList();
+  const button = document.getElementById("button");
+  button.addEventListener("click", addCityInList);
+  document.getElementById("input").addEventListener("keydown", inputKeyDown);
+  document.getElementById(idList).addEventListener("click", cityFromListClick);
 }
-
-async function citiesFromStorage() {
-    const allCitiesFromStorage = JSON.parse(localStorage.getItem("cities"));
-    console.log(allCitiesFromStorage);
-    const list = document.getElementById(idList);
-    // localStorage.setItem("cities", JSON.stringify(allCitiesFromStorage));
-    // думала вдруг тогда города и те и те сохр будут, но не сработало
-    for(let i = 0; i < allCitiesFromStorage.length; i++) {
-        const cityName = allCitiesFromStorage[i];
-        const li = document.createElement("li");
-        li.setAttribute("data-city", cityName);
-        li.innerHTML = cityName;
-        list.append(li);
-        citiesList.push(cityName);
-    }
-}
-

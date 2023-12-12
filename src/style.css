@@ -1,10 +1,10 @@
 #parent {
-    display: flex;
-    flex-direction: row;
-    gap: 200px;
+  display: flex;
+  flex-direction: row;
+  gap: 200px;
 }
 
-#list li:hover{
-    text-decoration: underline;
-    cursor: pointer;
+#list li:hover {
+  text-decoration: underline;
+  cursor: pointer;
 }
